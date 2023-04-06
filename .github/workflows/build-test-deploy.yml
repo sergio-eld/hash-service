@@ -1,0 +1,27 @@
+name: CI
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    name: Build the project and save the artifacts
+    steps:
+      - uses: actions/checkout@v3
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: build-essential gcc mingw-w64 ninja-build cmake libasio-dev libssl-dev
+          version: 1.0
+
+      - name: Configure CMake
+        run: > 
+          cmake -B ${{github.workspace}}/build 
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} 
+          -DCMAKE_INSTALL_PREFIX=${{github.workspace/install}}
+
+      - name: Build
+        run: cmake --build ${{github.workspace}}/build
