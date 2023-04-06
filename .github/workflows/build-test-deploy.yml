@@ -21,7 +21,7 @@ jobs:
         run: > 
           cmake -B ${{github.workspace}}/build 
           -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} 
-          -DCMAKE_INSTALL_PREFIX=${{github.workspace/install}}
+          -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install
 
       - name: Build
         run: cmake --build ${{github.workspace}}/build
