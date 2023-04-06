@@ -10,5 +10,6 @@ RUN apt-get update && \
 
 WORKDIR /app
 VOLUME /app/build
+VOLUME /app/install
 
 CMD ["bash"]
