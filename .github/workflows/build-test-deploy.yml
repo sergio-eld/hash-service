@@ -5,11 +5,22 @@ on:
   pull_request:
     branches: ["master"]
   workflow_dispatch:
+    inputs:
+      build-type:
+        description: 'The project build type'
+        required: true
+        default: 'Release'
+        type: choice
+        options:
+          - Release
+          - Debug
+          - RelWithDebInfo
 
 jobs:
   build:
     runs-on: ubuntu-20.04
     name: Build the project and save the artifacts
+
     steps:
       - uses: actions/checkout@v3
       - uses: awalsh128/cache-apt-pkgs-action@latest
@@ -18,10 +29,23 @@ jobs:
           version: 1.0
 
       - name: Configure CMake
-        run: > 
+        run: >
           cmake -B ${{github.workspace}}/build 
-          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} 
+          -DCMAKE_BUILD_TYPE=${{github.event.inputs.build-type}} 
           -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install
 
       - name: Build
         run: cmake --build ${{github.workspace}}/build
+
+      - name: Package Installer
+        working-directory: ${{github.workspace}}/build
+        run: cpack
+
+      - name: Tests
+        run: echo TODO run tests here
+
+      - name: Save build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: install/*
