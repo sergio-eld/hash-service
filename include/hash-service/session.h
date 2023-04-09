@@ -198,7 +198,7 @@ namespace hs {
 		if (!optHash)
 			return termination({});
 
-		auto ctx = context::create(std::move(socket), std::forward<Config>(conf));
+		auto ctx = context::create(std::move(socket), std::move(*optHash), std::forward<Config>(conf));
 		session::receiving(ctx);
 
 		return session::termination(ctx->weak_ref());
