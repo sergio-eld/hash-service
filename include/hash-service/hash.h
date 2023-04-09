@@ -47,6 +47,8 @@ namespace hs {
 			unsigned int written = 0;
 			if (!EVP_DigestFinal(_context.get(), hash.data(), &written) || !written)
 				return std::nullopt;
+			if (!EVP_DigestInit(_context.get(), EVP_sha256()))
+				return std::nullopt;
 
 			return hash;
 		}
