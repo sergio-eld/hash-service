@@ -1,3 +1,4 @@
+find_package(GTest REQUIRED)
 
 add_executable(test.unit.hashing hashing.cpp)
 target_link_static_crt(test.unit.hashing)

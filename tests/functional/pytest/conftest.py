@@ -1,8 +1,16 @@
 ﻿import ipaddress
+import pathlib
+
 import pytest
 
 
 def pytest_addoption(parser):
+    parser.addoption(
+        "--local_server",
+        action="store",
+        type=pathlib.Path,
+        help="Path to the local server's executable"
+    )
     parser.addoption(
         "--server_ip",
         action="store",
@@ -25,6 +33,19 @@ def pytest_addoption(parser):
 
 
 @pytest.fixture
+def local_server(request):
+    server_executable = request.config.option.local_server
+
+    assert server_executable.exists(), f"'{server_executable}' doesn't exist"
+    return server_executable
+
+
+@pytest.fixture
+def server_executable(request):
+    return request.config.option.server_executable
+
+
+@pytest.fixture
 def server_ip(request):
     return ipaddress.IPv4Address(request.config.getoption("--server_ip"))
 
@@ -32,8 +53,8 @@ def server_ip(request):
 @pytest.fixture
 def server_port(request):
     return request.config.getoption("--server_port")
-
-
-@pytest.fixture
-def lines_count(request):
-    return request.config.getoption("--lines_count")
+#
+#
+# @pytest.fixture
+# def lines_count(request):
+#     return request.config.getoption("--lines_count")
