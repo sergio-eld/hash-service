@@ -3,6 +3,6 @@
 endif ()
 
 if (${FUNCTIONAL_TESTS})
-# TODO: functional test
+    add_subdirectory(functional)
 endif ()
 

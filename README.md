@@ -48,7 +48,7 @@ Testing and installation is optional.
 ### Docker
 This project provides a [Dockerfile.dev](Dockerfile.dev) to build a Docker image to be used for building and 
 debugging purposes.  
-Building: `docker build -f ./Dockerfile.dev -t hash-service-dev`  
+Building: `docker build -f ./Dockerfile.dev -t hash-service-dev .`  
 Running: 
 ```
 docker container run --rm -it -v $(pwd):/app:ro -v $(pwd) /build:/app/build hash-service-dev bash

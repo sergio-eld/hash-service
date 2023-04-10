@@ -55,7 +55,6 @@ set_target_properties(server
 # TODO: cmake option for BUILD_TESTS
 if (${BUILD_TESTS})
     enable_testing()
-    find_package(GTest REQUIRED)
     add_subdirectory(tests)
 endif ()
 
