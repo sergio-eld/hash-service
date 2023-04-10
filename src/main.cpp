@@ -14,8 +14,7 @@ int main(int argc, char **argv) {
 
 	{
 		// TODO: cli args
-		uint16_t port = 23;
-		(void)port;
+		const uint16_t port = 23;
 
 		// TODO: (?) separate non-io task handling to asio::thread_pool
 		asio::io_context ioContext{int(std::thread::hardware_concurrency())};
