@@ -5,16 +5,10 @@
 
 #include <iostream>
 
-namespace {
-}
-
 int main(int argc, char **argv) {
-	(void)argc;
-	(void)argv;
-
-	{
-		// TODO: cli args
-		const uint16_t port = 23;
+	try {
+		const uint16_t port = argc < 2 ? 23 :
+			std::stoi(argv[1]);
 
 		// TODO: (?) separate non-io task handling to asio::thread_pool
 		asio::io_context ioContext{int(std::thread::hardware_concurrency())};
@@ -30,9 +24,19 @@ int main(int argc, char **argv) {
 		  }
 		});
 
-		std::cout << "Listening to port " << port << "...\n";
+		std::cout << "listening to port " << port << "...\n";
 
 		ioContext.run();
+	}
+	catch (const std::invalid_argument &)
+	{
+		std::cerr << "invalid port.\nsignature: server [port = 23]\n";
+		return 0;
+	}
+	catch (const std::exception &e)
+	{
+		std::cerr << "unexpected error: " << e.what() << '\n';
+		return 0;
 	}
 
 	std::cout << "THE END!\n";

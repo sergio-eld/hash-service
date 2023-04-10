@@ -72,9 +72,9 @@ CPack is used for generating installation packages.
 ### Running
 Hashing server can be run using the following command:
 ```
-(TODO)
+> ./server [port = 23]
 ```
-The server handles termination via `Ctrl + C`.
+The server handles termination via `Ctrl + C` (SIGINT on Ubuntu).
 
 ## CI 
 Currently, a `.yml` file for GitHub actions is implemented in `.github/workflows`.  
