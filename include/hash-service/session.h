@@ -116,7 +116,7 @@ namespace hs {
 	 *
 	 * An object of the context may be weak-referenced in order to track the lifetime.
 	 */
-	struct session::context : private std::enable_shared_from_this<context>
+	struct session::context : /*private*/ std::enable_shared_from_this<context>
 	{
 		constexpr static size_t buffer_size = 2048;
 
@@ -312,6 +312,6 @@ namespace hs {
 		auto ctx = context::create(std::move(socket), std::move(*optHash), std::forward<Config>(conf));
 		session::receiving(ctx);
 
-		return session::termination(ctx->weak_ref());
+		return session::termination(ctx);
 	}
 }
