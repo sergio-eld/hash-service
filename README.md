@@ -1,9 +1,7 @@
 ﻿# Hashing service
-___
 A small asynchronous TCP server providing a hashing functionality.
 
 ## Description
-___
 This is a sample project based on a test assignment. The server expects lines of ASCII characters terminated by an `'\n'` 
 (single byte of value `10`) and for each line responds with its sha256-encoded hash in a HEX format, also terminated by
 `'\n'`. For details refer to [specification.md](specification.md).  
@@ -17,7 +15,6 @@ The project is intended to demonstrate the full development lifecycle alongside 
 The project may and is expected to be used as a reference for solving recurring problems.
 
 ## Building
-___
 According to the specification, the target system is Ubuntu 20.04. Hence, all the required dependencies should be
 installed on your machine (currently: using `apt` or `pacman` is building with msys2). 
 List of the dependencies can be found in [Dockerfile.dev](Dockerfile.dev). Package versions should be compatible with 
@@ -65,12 +62,10 @@ The [Dockerfile.dev](Dockerfile.dev) also contains a gdbserver.
 (*TODO*)
 
 ## Deployment
-___
 CPack is used for generating installation packages.
 (*TODO: Ubuntu, Windows*)
 
 ## TCP Server
-___
 ### Installation
 (*TODO*)
 
@@ -82,7 +77,6 @@ Hashing server can be run using the following command:
 The server handles termination via `Ctrl + C`.
 
 ## CI 
-___
 Currently, a `.yml` file for GitHub actions is implemented in `.github/workflows`.  
 The pipeline supports:
 - Building
