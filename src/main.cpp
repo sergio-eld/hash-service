@@ -1,9 +1,11 @@
 
 #include "hash-service/server.h"
+#include "hash-service/logging.h"
 
 #include <asio.hpp>
 
-#include <iostream>
+#include <thread>
+#include <string>
 
 int main(int argc, char **argv) {
 	try {
@@ -12,7 +14,11 @@ int main(int argc, char **argv) {
 
 		// TODO: (?) separate non-io task handling to asio::thread_pool
 		asio::io_context ioContext{int(std::thread::hardware_concurrency())};
-		hs::server hashServer{ioContext, hs::server::config{port, std::chrono::seconds(2)}};
+		hs::server hashServer{ioContext, hs::server::config{port,
+															std::chrono::seconds(2),
+
+															// TODO: log level from CLI
+															hs::std_ostream_logger()}};
 
 		asio::signal_set signals{ioContext, SIGINT};
 		signals.async_wait([&hashServer](asio::error_code /*errorCode*/, int sig){
@@ -23,8 +29,6 @@ int main(int argc, char **argv) {
 			  hashServer.stop();
 		  }
 		});
-
-		std::cout << "listening to port " << port << "...\n";
 
 		ioContext.run();
 	}

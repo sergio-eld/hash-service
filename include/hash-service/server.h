@@ -1,15 +1,14 @@
 ﻿#pragma once
 
 #include "hash-service/session.h"
+#include "hash-service/logging.h"
 
 #include <asio.hpp>
 
 #include <type_traits>
-#include <chrono>
 #include <algorithm>
 
 #include <vector>
-#include <thread>
 
 namespace hs {
 	using asio::ip::tcp;
@@ -54,6 +53,7 @@ namespace hs {
 		{
 			uint16_t port;
 			std::chrono::milliseconds connection_timeout;
+			std_ostream_logger logger;
 		};
 
 		/**
@@ -69,13 +69,16 @@ namespace hs {
 			  _connectionTimeout(config.connection_timeout),
 			  _monitoringStrand(executor.get_executor()),
 			  _monitoringInterval(get_time_interval(config)),
-			  _monitoringTimer(executor)
+			  _monitoringTimer(executor),
+			  _logger(config.logger)
 		{
 			if(_monitoringInterval < std::chrono::milliseconds(200))
 				_monitoringInterval = std::chrono::milliseconds(200);
 
 			// TODO: configure?
 			_sessionTerminators.reserve(256);
+
+			_logger.message(std::string("listening to port: ") + std::to_string(_acceptor.local_endpoint().port()));
 			start_monitoring();
 			accepting();
 		}
@@ -91,11 +94,15 @@ namespace hs {
 		 * Removes all the termination handlers.
 		 */
 		void stop() {
+			_logger.message("server::stop(): terminating all connections");
 			asio::error_code errorCode{};
 			_acceptor.cancel(errorCode);
 
 			if (!errorCode)
 				asio::post(_monitoringStrand, [this]{terminate_all_sessions();});
+
+			if (errorCode != asio::error_code())
+				_logger.error(std::string("server::stop() error: ") + errorCode.message());
 			// TODO: (?) handle errorCode
 		}
 
@@ -105,7 +112,7 @@ namespace hs {
 				[this](asio::error_code err, tcp::socket socket) mutable {
 				  if (!err){
 					  using config = hs::session::config;
-					  auto &&term = hs::session::start(std::move(socket), config{_connectionTimeout});
+					  auto &&term = hs::session::start(std::move(socket), config{_connectionTimeout, _logger});
 					  asio::post(_monitoringStrand, [this, term = std::move(term)] () mutable {
 						register_session(std::move(term));
 					  });
@@ -172,5 +179,6 @@ namespace hs {
 		std::chrono::milliseconds _monitoringInterval;
 		asio::steady_timer _monitoringTimer;
 		std::vector<hs::session::termination> _sessionTerminators;
+		std_ostream_logger _logger;
 	};
 }

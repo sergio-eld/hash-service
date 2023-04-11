@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "hash-service/hash.h"
+#include "hash-service/logging.h"
 
 #include <asio.hpp>
 
@@ -45,6 +46,7 @@ namespace hs {
 		struct config
 		{
 			std::chrono::microseconds timeout;
+			std_ostream_logger logger;
 		};
 
 		class termination;
@@ -116,7 +118,7 @@ namespace hs {
 	 *
 	 * An object of the context may be weak-referenced in order to track the lifetime.
 	 */
-	struct session::context : /*private*/ std::enable_shared_from_this<context>
+	struct session::context : std::enable_shared_from_this<context>
 	{
 		constexpr static size_t buffer_size = 2048;
 
@@ -129,6 +131,7 @@ namespace hs {
 		constexpr static size_t hex_buffer_sz = sha256_hash::digest_length * 2 + 1;
 		std::array<uint8_t, hex_buffer_sz> hexBuffer{};
 		sha256_hash hash;
+		std_ostream_logger logger;
 
 		std::weak_ptr<context> weak_ref() {
 			return weak_from_this();
@@ -143,9 +146,10 @@ namespace hs {
 
 	 private:
 		template <typename Config>
-		context(tcp::socket &&socket, sha256_hash &&hash, Config &&/*conf*/)
+		context(tcp::socket &&socket, sha256_hash &&hash, Config &&conf)
 			: socket(std::move(socket)),
-			hash(std::move(hash))
+			hash(std::move(hash)),
+			logger(conf.logger)
 		{}
 	};
 
@@ -204,9 +208,13 @@ namespace hs {
 
 			if (err == asio::error::operation_aborted)
 			{
+				ctx->logger.message("session::receiving() cancelled");
+
 				// TODO: anything else?
 				return;
 			}
+
+			ctx->logger.error(std::string("session::receiving() error: ") + err.message());
 			// (?) TODO: handle error
 		});
 	}
@@ -281,9 +289,8 @@ namespace hs {
 		ctx->hexBuffer = detail::append(to_hex(*res), '\n');
 		tcp::socket &socket = ctx->socket;
 		asio::async_write(socket, asio::buffer(ctx->hexBuffer),
-			[ctx](asio::error_code err, size_t bytesTransferred) noexcept{
+			[ctx](asio::error_code err, size_t /*bytesTransferred*/) noexcept{
 
-			(void)bytesTransferred;
 			if (!err)
 			{
 				ctx->pendingBytes ?
@@ -294,9 +301,13 @@ namespace hs {
 
 			if (err == asio::error::operation_aborted)
 			{
+				ctx->logger.message("session::responding() cancelled\n");
+
 				// TODO: anything else?
 				return;
 			}
+
+			ctx->logger.error(std::string("session::responding() error: ") + err.message());
 
 		  // TODO: (?) logging
 		});
