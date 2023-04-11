@@ -51,7 +51,7 @@ debugging purposes.
 Building: `docker build -f ./Dockerfile.dev -t hash-service-dev .`  
 Running: 
 ```
-docker container run --rm -it -v $(pwd):/app:ro -v $(pwd) /build:/app/build hash-service-dev bash
+docker container run --rm -it -v $(pwd):/app:ro -v $(pwd)/build:/app/build hash-service-dev bash
 ```
 This command will run the container, mapping the source directory in `read-only` mode and `./build` in `write` mode 
 (to output the built files).  
