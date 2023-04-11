@@ -42,8 +42,6 @@ namespace hs {
 		{}
 
 		void message(std::string s) const noexcept {
-			std::cout << "s";
-			std::cout << "level: " << int(_level) << '\n';
 			if (!is_enabled(log_level::messages))
 				return;
 
