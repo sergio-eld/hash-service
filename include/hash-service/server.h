@@ -94,22 +94,39 @@ namespace hs {
 		 * Removes all the termination handlers.
 		 */
 		void stop() {
-			_logger.message("server::stop(): terminating all connections");
-			asio::error_code errorCode{};
-			_acceptor.cancel(errorCode);
+			const auto func_name = std::string("server::") + __func__ + "(): ";
 
-			if (!errorCode)
-				asio::post(_monitoringStrand, [this]{terminate_all_sessions();});
+			asio::post(_acceptor.get_executor(), [func_name, this]{
+			  _logger.message(func_name + "terminating all connections");
 
-			if (errorCode != asio::error_code())
-				_logger.error(std::string("server::stop() error: ") + errorCode.message());
-			// TODO: (?) handle errorCode
+			  asio::error_code errorCode{};
+			  _acceptor.cancel(errorCode);
+
+			  if (errorCode != asio::error_code())
+				  _logger.error(func_name + "error: " + errorCode.message());
+			});
+
+			asio::post(_monitoringStrand, [func_name, this]{
+			  _logger.message(func_name + "stopping monitoring timer");
+
+			  asio::error_code errorCode{};
+			  _monitoringTimer.cancel(errorCode);
+			  if (errorCode != asio::error_code())
+				  _logger.error(func_name + "error: " + errorCode.message());
+
+			  if (!errorCode)
+				  asio::post(_monitoringStrand, [this]{terminate_all_sessions();});
+
+			  if (errorCode != asio::error_code())
+				  _logger.error(std::string("server::stop() error: ") + errorCode.message());
+			});
 		}
 
 	 private:
 		void accepting() noexcept {
+			const auto func_name = std::string("server::") + __func__ + ": ";
 			_acceptor.async_accept(
-				[this](asio::error_code err, tcp::socket socket) mutable {
+				[this, func_name](asio::error_code err, tcp::socket socket) mutable {
 				  if (!err){
 					  using config = hs::session::config;
 					  auto &&term = hs::session::start(std::move(socket), config{_connectionTimeout, _logger});
@@ -123,20 +140,29 @@ namespace hs {
 
 				  if (err == asio::error::operation_aborted)
 				  {
-					  _monitoringTimer.cancel();
+					  asio::post(_monitoringStrand, [this]{_monitoringTimer.cancel();});
 					  return;
 				  }
 
-				  // TODO: (?) something terrible has happened.
+				  _logger.error(func_name + "error: " + err.message());
+				  accepting();
 				});
 		}
 
 		void start_monitoring() {
+			const auto func_name = std::string("server::") + __func__ + ": ";
+
 			asio::error_code errorCode{};
 			_monitoringTimer.expires_at(std::chrono::steady_clock::now() + _monitoringInterval, errorCode);
-			// TODO: what if we fail with errorCode here?
+			if (errorCode != asio::error_code())
+			{
+				_logger.error(func_name + "critical error: failed to set up timer: " +
+					errorCode.message() + ", terminating...");
+				stop();
+				return;
+			}
 
-			_monitoringTimer.async_wait([&](asio::error_code err){
+			_monitoringTimer.async_wait([this, func_name](asio::error_code err){
 			  if (!err) {
 				  asio::post(_monitoringStrand, [this] {remove_dead_sessions(); });
 				  return;
@@ -147,7 +173,8 @@ namespace hs {
 				  return;
 			  }
 
-			  // TODO: (?) something terrible has happened.
+			  _logger.error(func_name + "error: " + err.message());
+			  asio::post(_monitoringStrand, [this]{start_monitoring();});
 			});
 		}
 
