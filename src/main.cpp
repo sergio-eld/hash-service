@@ -1,4 +1,8 @@
 
+#ifdef DEBUG_ASIO
+#define ASIO_ENABLE_HANDLER_TRACKING
+#endif
+
 #include "hash-service/server.h"
 #include "hash-service/logging.h"
 

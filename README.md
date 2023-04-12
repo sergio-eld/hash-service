@@ -31,6 +31,7 @@ Options:
 - `BUILD_TESTS [ON|OFF]` enable tests. Will require `GTest` and `Pytest`. `ON` by default. 
 - `UNIT_TESTS [ON|OFF]` enable unit tests. Will require `GTest`. Depends on `BUILD_TESTS`. `ON` by default.
 - `FUNCTIONAL_TESTS [ON|OFF]` enable functional tests. Will require `Pytest`. Depends on `BUILD_TESTS`. `ON` by default.
+- `DEBUG_ASIO [ON|OFF]` enables `ASIO_ENABLE_HANDLER_TRACKING`. `OFF` by default.   
 
 Command:
 ```
