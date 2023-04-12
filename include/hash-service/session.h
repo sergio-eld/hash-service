@@ -184,8 +184,13 @@ namespace hs {
 			if (!ctx)
 				return;
 
-			// TODO: is this enough?
-			ctx->socket.cancel();
+			asio::post(ctx->socket.get_executor(), [ctx]{
+			  ctx->socket.cancel();
+			  asio::error_code errorCode{};
+			  ctx->socket.shutdown(asio::socket_base::shutdown_both, errorCode);
+			  if (errorCode != asio::error_code())
+				  ctx->logger.error(std::string("session::termination() error: ") + errorCode.message());
+			});
 		}
 
 	 private:
@@ -194,11 +199,13 @@ namespace hs {
 
 	void session::receiving(std::shared_ptr<context> ctx) noexcept
 	{
+		const auto func_name = std::string("session::") + __func__;
+
 		tcp::socket &socket = ctx->socket;
 		auto &buffer = ctx->stringBuffer;
 
-		socket.async_read_some(asio::buffer(buffer),
-			[ctx](asio::error_code err, size_t bytesReceived) {
+		socket.async_receive(asio::buffer(buffer),
+			[ctx, func_name](asio::error_code err, size_t bytesReceived) {
 			if (!err)
 			{
 				ctx->pendingBytes = bytesReceived;
@@ -208,19 +215,25 @@ namespace hs {
 
 			if (err == asio::error::operation_aborted)
 			{
-				ctx->logger.message("session::receiving() cancelled");
-
-				// TODO: anything else?
+				ctx->logger.message(func_name + " cancelled");
 				return;
 			}
 
-			ctx->logger.error(std::string("session::receiving() error: ") + err.message());
-			// (?) TODO: handle error
+			if (err == asio::error::eof)
+			{
+				ctx->logger.message(func_name + ": tcp socket has disconnected");
+				return;
+			}
+
+			ctx->logger.error(func_name + " error:" + err.message());
+			// terminating the session
 		});
 	}
 
 	void session::encoding(std::shared_ptr<context> ctx) noexcept
 	{
+		const auto func_name = std::string("session::") + __func__;
+
 		// TODO: make a buffer-class
 		const auto inspectBuffer = [](const auto &buffer, size_t bytes, char term) {
 		  struct _res
@@ -258,10 +271,10 @@ namespace hs {
 		std::string_view lineChunk{(const char*)buffer.data(), dataLength};
 		if (!ctx->hash.update(lineChunk))
 		{
-			// some internal error occurred
-			// TODO: (?) logging
+			ctx->logger.error(func_name + " error: hash.update() failed");
 			return;
 		}
+
 		shiftLeft(buffer, toErase);
 		ctx->pendingBytes -= toErase;
 
@@ -278,18 +291,19 @@ namespace hs {
 
 	void session::responding(std::shared_ptr<context> ctx) noexcept
 	{
+		const auto func_name = std::string("session::") + __func__;
+
 		const auto res = ctx->hash.finalize();
 		if (!res)
 		{
-			// some internal error occurred
-			// TODO: (?) logging
+			ctx->logger.error(func_name + " error: hash.finalize() failed");
 			return;
 		}
 
 		ctx->hexBuffer = detail::append(to_hex(*res), '\n');
 		tcp::socket &socket = ctx->socket;
 		asio::async_write(socket, asio::buffer(ctx->hexBuffer),
-			[ctx](asio::error_code err, size_t /*bytesTransferred*/) noexcept{
+			[ctx, func_name](asio::error_code err, size_t /*bytesTransferred*/) noexcept{
 
 			if (!err)
 			{
@@ -301,15 +315,17 @@ namespace hs {
 
 			if (err == asio::error::operation_aborted)
 			{
-				ctx->logger.message("session::responding() cancelled\n");
-
-				// TODO: anything else?
+				ctx->logger.message(func_name + " cancelled");
+				return;
+			}
+			if (err == asio::error::eof)
+			{
+				ctx->logger.message(func_name + ": tcp socket has disconnected");
 				return;
 			}
 
-			ctx->logger.error(std::string("session::responding() error: ") + err.message());
-
-		  // TODO: (?) logging
+			ctx->logger.error(func_name + " error:" + err.message());
+			// terminating session here
 		});
 	}
 

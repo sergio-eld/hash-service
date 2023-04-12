@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 
 project(hash-service VERSION 0.0.1 LANGUAGES CXX)
 
+option(DEBUG_ASIO "Enable ASIO debugging for server" OFF)
+message(STATUS "DEBUG_ASIO: ${DEBUG_ASIO}")
+
 option(BUILD_TESTS "Build test suite" ON)
 message(STATUS "BUILD_TESTS: ${BUILD_TESTS}")
 
@@ -45,6 +48,9 @@ target_link_libraries(server
         PRIVATE
             hash_server
         )
+if (${DEBUG_ASIO})
+    target_compile_definitions(server PRIVATE DEBUG_ASIO)
+endif ()
 
 # set(CMAKE_DEBUG_POSTFIX _d) doesn't work for some reason
 set_target_properties(server
