@@ -123,6 +123,7 @@ namespace hs {
 		constexpr static size_t buffer_size = 2048;
 
 		tcp::socket socket;
+		asio::strand<tcp::socket::executor_type> socketStrand;
 
 		// TODO: wrapper for the string buffer
 		std::array<uint8_t, buffer_size> stringBuffer{};
@@ -148,6 +149,7 @@ namespace hs {
 		template <typename Config>
 		context(tcp::socket &&socket, sha256_hash &&hash, Config &&conf)
 			: socket(std::move(socket)),
+			socketStrand(socket.get_executor()),
 			hash(std::move(hash)),
 			logger(conf.logger)
 		{}
@@ -184,7 +186,7 @@ namespace hs {
 			if (!ctx)
 				return;
 
-			asio::post(ctx->socket.get_executor(), [ctx]{
+			asio::post(ctx->socketStrand, [ctx]{
 			  ctx->socket.cancel();
 			  asio::error_code errorCode{};
 			  ctx->socket.shutdown(asio::socket_base::shutdown_both, errorCode);
@@ -262,7 +264,7 @@ namespace hs {
 		const size_t pendingBytes = ctx->pendingBytes;
 		if (!pendingBytes)
 		{
-			receiving(std::move(ctx));
+			asio::post(ctx->socketStrand, [ctx]{ receiving(ctx); });
 			return;
 		}
 
@@ -282,11 +284,11 @@ namespace hs {
 		const bool lineComplete = (toErase - dataLength) == 1;
 		if (lineComplete)
 		{
-			responding(std::move(ctx));
+			asio::post(ctx->socketStrand, [ctx]{ responding(ctx); });
 			return;
 		}
 
-		receiving(std::move(ctx));
+		asio::post(ctx->socketStrand, [ctx]{ receiving(ctx); });
 	}
 
 	void session::responding(std::shared_ptr<context> ctx) noexcept
@@ -309,7 +311,7 @@ namespace hs {
 			{
 				ctx->pendingBytes ?
 					session::encoding(ctx) :
-					session::receiving(ctx);
+					asio::post(ctx->socketStrand, [ctx]{ receiving(ctx); });
 				return;
 			}
 
@@ -337,7 +339,7 @@ namespace hs {
 			return termination({});
 
 		auto ctx = context::create(std::move(socket), std::move(*optHash), std::forward<Config>(conf));
-		session::receiving(ctx);
+		asio::post(ctx->socketStrand, [ctx]{session::receiving(ctx);});
 
 		return session::termination(ctx);
 	}
